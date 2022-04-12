@@ -165,7 +165,7 @@ class _products_homeState extends State<products_home> {
         width: MediaQuery.of(context).size.width,
         child: Padding(
           padding: const EdgeInsets.only(left: 20.0, top: 30),
-          child: Text('Good Evening!',
+          child: Text('Good Evening...',
               style: GoogleFonts.montserrat(
                   textStyle: TextStyle(
                       color: Colors.white,
