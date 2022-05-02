@@ -20,16 +20,10 @@ class welcome extends StatefulWidget {
 
 class _welcomeState extends State<welcome> {
   @override
-  void initState() {
-    // FocusScope.of(context).unfocus();
-  }
-
-  @override
   Widget build(BuildContext context) {
     TextEditingController a = TextEditingController();
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      // appBar: myAppBar(title: "Home"),
       backgroundColor: Colors.black,
       body: SingleChildScrollView(
         child: GestureDetector(
@@ -122,42 +116,6 @@ class _welcomeState extends State<welcome> {
                   width: MediaQuery.of(context).size.width / 1.2,
                   child: ElevatedButton(
                     onPressed: () async {
-                      // Pushing temporary product in names
-                      // await http.post(
-                      //     Uri.parse(
-                      //         "https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/names.json"),
-                      //     body: json.encode({
-                      //       'product_name': "No Product Added!",
-                      //       'product_detail': "",
-                      //       'product_price': 0,
-                      //       'product_quantity': 0
-                      //     }));
-                      // Product temp = new Product(
-                      //     product_name: "No Transactions yet!",
-                      //     product_id: "temp",
-                      //     product_detail: "",
-                      //     product_quantity: 0,
-                      //     product_price: 0);
-
-                      // Pushing temporary transaction in transactions
-                      // Transaction tempt =
-                      //     new Transaction(product_name: temp, inorout: "None");
-
-                      // await http.post(
-                      //     Uri.parse(
-                      //         "https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/transactions.json"),
-                      //     body: json.encode({
-                      //       'product_name': {
-                      //         'product_name': tempt.product_name.product_name,
-                      //         'product_id': tempt.product_name.product_id,
-                      //         'product_detail':
-                      //             tempt.product_name.product_detail,
-                      //         'product_quantity':
-                      //             tempt.product_name.product_quantity,
-                      //         'product_price': tempt.product_name.product_price,
-                      //       },
-                      //       'inorout': tempt.inorout
-                      //     }));
                       Navigator.of(context).pushNamed(transactions.routeName);
                     },
                     style: ElevatedButton.styleFrom(primary: Colors.purple),
