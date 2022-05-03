@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 import 'package:shop_app/models/product.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shop_app/screens/product_description.dart';
+import 'package:shop_app/widgets/getTDB.dart';
+import 'package:sqflite/sqflite.dart' as sql;
 import '../models/transaction.dart';
+import '../widgets/getPDB.dart';
 import 'search_product.dart';
 import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:intl/intl.dart';
@@ -35,35 +39,94 @@ class _products_homeState extends State<products_home> {
     fetch();
   }
 
+  Future<void> add() async {
+    final database = getPDB();
+    (await database).execute(
+      'CREATE TABLE products(product_id INT PRIMARY KEY, product_name TEXT, product_date STRING, product_quantity INTEGER, product_price TEXT);',
+    );
+    print("ADD");
+  }
+
+  Future<void> drop() async {
+    final database = getPDB();
+    (await database).execute(
+      'DROP TABLE IF EXISTS products;',
+    );
+    print("Drop");
+  }
+
   Future<void> fetch() async {
-    products = [];
-    final response = await http.get(Uri.parse(url));
-    var a = json.decode(response.body);
-    if (a == null) {
+    // products = [];
+    // final response = await http.get(Uri.parse(url));
+    // var a = json.decode(response.body);
+    // if (a == null) {
+    //   Product temp = new Product(
+    //       product_name: "No Product Added!",
+    //       product_id: "temp",
+    //       product_date: DateTime.now(),
+    //       product_quantity: 0,
+    //       product_price: "0");
+
+    //   products.add(temp);
+    //   setState(() {
+    //     height_of_container = 100;
+    //     products = products.reversed.toList();
+    //     isLoading = false;
+    //   });
+    // } else {
+    //   var i = 0;
+    //   a.forEach((key, value) {
+    //     products.add(Product(
+    //         product_id: key,
+    //         product_name: value['product_name'],
+    //         product_date: DateTime.parse(value['product_date']),
+    //         product_price: value['product_price'],
+    //         product_quantity: value['product_quantity']));
+    //     i++;
+    //   });
+
+    //   setState(() {
+    //     height_of_container = i * 100;
+    //     products = products.reversed.toList();
+    //     isLoading = false;
+    //   });
+    // }
+
+    final database = getPDB();
+
+    print("Actual Products= {$products}");
+
+    List<Map<String, dynamic>> productsInDB =
+        await fetchProductsFromDB(await database);
+    print(productsInDB.length);
+    if (productsInDB.length == 0) {
       Product temp = new Product(
+          product_id: 0,
           product_name: "No Product Added!",
-          product_id: "temp",
-          product_date: DateTime.now(),
+          product_date: DateTime.now().toString(),
           product_quantity: 0,
           product_price: "0");
-
+      products = [];
       products.add(temp);
+      print("No item db = {$products}");
       setState(() {
         height_of_container = 100;
         products = products.reversed.toList();
         isLoading = false;
       });
     } else {
-      var i = 0;
-      a.forEach((key, value) {
-        products.add(Product(
-            product_id: key,
-            product_name: value['product_name'],
-            product_date: DateTime.parse(value['product_date']),
-            product_price: value['product_price'],
-            product_quantity: value['product_quantity']));
-        i++;
-      });
+      var i = productsInDB.length;
+      products = [];
+      for (int j = 0; j < i; j++) {
+        Product newP = Product(
+            product_id: productsInDB[j]['product_id'],
+            product_name: productsInDB[j]['product_name'],
+            product_date: productsInDB[j]['product_date'],
+            product_price: productsInDB[j]['product_price'],
+            product_quantity: productsInDB[j]['product_quantity']);
+        products.add(newP);
+      }
+      print("Products from db = {$products}");
 
       setState(() {
         height_of_container = i * 100;
@@ -74,43 +137,93 @@ class _products_homeState extends State<products_home> {
   }
 
   Future<void> fetch_transactions() async {
-    transactions = [];
-    final response = await http.get(Uri.parse(transactions_url));
-    var a = json.decode(response.body);
-    if (a == null) {
+    // transactions = [];
+    // final response = await http.get(Uri.parse(transactions_url));
+    // var a = json.decode(response.body);
+    // if (a == null) {
+    //   Product temp = new Product(
+    //       product_name: "No Product Added!",
+    //       product_id: 0,
+    //       product_date: DateTime.now(),
+    //       product_quantity: 0,
+    //       product_price: "0");
+
+    //   Transaction tempt =
+    //       new Transaction(product_name: temp, inorout: "None        ");
+    //   transactions.add(tempt);
+
+    //   setState(() {
+    //     height_of_container = 100;
+    //     transactions = transactions.reversed.toList();
+    //     isLoading = false;
+    //   });
+    // } else {
+    //   a = json.decode(response.body) as Map<String, dynamic>;
+
+    //   var i = 0;
+    //   a.forEach((key, value) {
+    //     transactions.add(Transaction(
+    //         product_name: Product(
+    //             product_id: key,
+    //             product_name: value['product_name']['product_name'],
+    //             product_date:
+    //                 DateTime.parse(value['product_name']['product_date']),
+    //             product_price: value['product_name']['product_price'],
+    //             product_quantity: int.parse(
+    //                 value['product_name']['product_quantity'].toString())),
+    //         inorout: value['inorout']));
+    //     i++;
+    //   });
+
+    //   setState(() {
+    //     height_of_container = i * 100;
+    //     transactions = transactions.reversed.toList();
+    //     isLoading = false;
+    //   });
+    // }
+    // print("Actual transactions= {$transactions}");
+
+    final database = getTDB();
+
+    List<Map<String, dynamic>> transactionsInDB =
+        await fetchTransactionsFromDB(await database);
+
+    if (transactionsInDB.length != 0) {
       Product temp = new Product(
+          product_id: 0,
           product_name: "No Product Added!",
-          product_id: "temp",
-          product_date: DateTime.now(),
+          product_date: DateTime.now().toString(),
           product_quantity: 0,
           product_price: "0");
-
-      Transaction tempt =
+      Transaction tempT =
           new Transaction(product_name: temp, inorout: "None        ");
-      transactions.add(tempt);
-
+      transactions = [];
+      transactions.add(tempT);
+      print("No item db = {$transactions}");
       setState(() {
         height_of_container = 100;
         transactions = transactions.reversed.toList();
         isLoading = false;
       });
     } else {
-      a = json.decode(response.body) as Map<String, dynamic>;
+      var i = transactionsInDB.length;
+      transactions = [];
+      for (int j = 0; j < i; j++) {
+        Product newP = Product(
+            product_id: transactionsInDB[i]['product_name']['product_id'],
+            product_name: transactionsInDB[i]['product_name']['product_name'],
+            product_date: transactionsInDB[i]['product_name']['product_date'],
+            product_price: transactionsInDB[i]['product_name']['product_price'],
+            product_quantity: transactionsInDB[i]['product_name']
+                ['product_quantity']);
 
-      var i = 0;
-      a.forEach((key, value) {
-        transactions.add(Transaction(
-            product_name: Product(
-                product_id: key,
-                product_name: value['product_name']['product_name'],
-                product_date:
-                    DateTime.parse(value['product_name']['product_date']),
-                product_price: value['product_name']['product_price'],
-                product_quantity: int.parse(
-                    value['product_name']['product_quantity'].toString())),
-            inorout: value['inorout']));
-        i++;
-      });
+        Transaction newT = Transaction(
+            product_name: newP,
+            inorout: transactionsInDB[i]['product_name']['inorout']);
+
+        transactions.add(newT);
+      }
+      print("Transactions from db = {$transactions}");
 
       setState(() {
         height_of_container = i * 100;
@@ -364,20 +477,42 @@ class _products_homeState extends State<products_home> {
                                                       isLoading = true;
                                                     });
 
-                                                    var re = await http.post(
-                                                        Uri.parse(url),
-                                                        body: json.encode({
-                                                          'product_name':
-                                                              one.text,
-                                                          'product_date':
-                                                              _dateController
-                                                                  .text,
-                                                          'product_price':
-                                                              four.text,
-                                                          'product_quantity':
-                                                              int.parse(
-                                                                  three.text)
-                                                        }));
+                                                    Product postP = new Product(
+                                                        product_name: one.text,
+                                                        product_id:
+                                                            products.length,
+                                                        product_date:
+                                                            _dateController
+                                                                .text,
+                                                        product_quantity:
+                                                            int.parse(
+                                                                three.text),
+                                                        product_price:
+                                                            four.text);
+
+                                                    final db = getPDB();
+                                                    try {
+                                                      insertProduct(
+                                                          postP, await db);
+                                                    } catch (e) {
+                                                      print(
+                                                          "prodErrorrrr -- > " +
+                                                              e.toString());
+                                                    }
+                                                    // var re = await http.post(
+                                                    //     Uri.parse(url),
+                                                    //     body: json.encode({
+                                                    //       'product_name':
+                                                    //           one.text,
+                                                    //       'product_date':
+                                                    //           _dateController
+                                                    //               .text,
+                                                    //       'product_price':
+                                                    //           four.text,
+                                                    //       'product_quantity':
+                                                    //           int.parse(
+                                                    //               three.text)
+                                                    //     }));
                                                     setState(() {
                                                       fetch();
                                                       isLoading = false;
@@ -385,28 +520,45 @@ class _products_homeState extends State<products_home> {
                                                     _formKey.currentState!
                                                         .save();
                                                     Navigator.pop(context);
-                                                    var id = re.body.substring(
-                                                        9, re.body.length - 2);
-                                                    await http.post(
-                                                        Uri.parse(
-                                                            "https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/transactions.json"),
-                                                        body: json.encode({
-                                                          'product_name': {
-                                                            'product_name':
-                                                                one.text,
-                                                            'product_id': id,
-                                                            'product_date':
-                                                                _dateController
-                                                                    .text,
-                                                            'product_quantity':
-                                                                int.parse(
-                                                                    three.text),
-                                                            'product_price':
-                                                                four.text,
-                                                          },
-                                                          'inorout':
-                                                              "Incoming ${int.parse(three.text)}",
-                                                        }));
+
+                                                    Transaction postT =
+                                                        new Transaction(
+                                                            product_name: postP,
+                                                            inorout:
+                                                                "Incoming ${postP.product_quantity}");
+                                                    final Tdb = getTDB();
+                                                    try {
+                                                      insertTransaction(
+                                                          postT, await Tdb);
+                                                      print("SUXCEESSSS");
+                                                    } catch (e) {
+                                                      print(
+                                                          "transacErrorrrr -- > " +
+                                                              e.toString());
+                                                    }
+
+                                                    // var id = re.body.substring(
+                                                    //     9, re.body.length - 2);
+                                                    // await http.post(
+                                                    //     Uri.parse(
+                                                    //         "https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/transactions.json"),
+                                                    //     body: json.encode({
+                                                    //       'product_name': {
+                                                    //         'product_name':
+                                                    //             one.text,
+                                                    //         'product_id': id,
+                                                    //         'product_date':
+                                                    //             _dateController
+                                                    //                 .text,
+                                                    //         'product_quantity':
+                                                    //             int.parse(
+                                                    //                 three.text),
+                                                    //         'product_price':
+                                                    //             four.text,
+                                                    //       },
+                                                    //       'inorout':
+                                                    //           "Incoming ${int.parse(three.text)}",
+                                                    //     }));
                                                     print("Validated!");
                                                   } else {
                                                     print("Not Validated.");

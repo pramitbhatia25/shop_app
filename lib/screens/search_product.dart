@@ -37,8 +37,8 @@ class _search_productState extends State<search_product> {
     if (a == null) {
       Product temp = new Product(
           product_name: "No Product Added!",
-          product_id: "temp",
-          product_date: DateTime.now(),
+          product_id: 0,
+          product_date: DateTime.now().toString(),
           product_quantity: 0,
           product_price: "0");
 
@@ -52,9 +52,9 @@ class _search_productState extends State<search_product> {
       var i = 0;
       a.forEach((key, value) {
         products.add(Product(
-            product_id: key,
+            product_id: 0,
             product_name: value['product_name'],
-            product_date: DateTime.parse(value['product_date']),
+            product_date: DateTime.parse(value['product_date']).toString(),
             product_price: value['product_price'],
             product_quantity: value['product_quantity']));
         i++;

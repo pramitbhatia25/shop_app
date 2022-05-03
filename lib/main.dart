@@ -33,8 +33,8 @@ class MyApp extends StatelessWidget {
         search_product.routeName: (ctx) => search_product(),
         product_description.routeName: (ctx) => product_description(
             pd: Product(
-                product_date: DateTime.now(),
-                product_id: "",
+                product_date: DateTime.now().toString(),
+                product_id: 0,
                 product_name: "",
                 product_price: "",
                 product_quantity: 12)),

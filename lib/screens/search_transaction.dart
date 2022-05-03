@@ -40,8 +40,8 @@ class _search_transactionState extends State<search_transaction> {
     if (a == null) {
       Product temp = new Product(
           product_name: "No Product Added!",
-          product_id: "temp",
-          product_date: DateTime.now(),
+          product_id: 0,
+          product_date: DateTime.now().toString(),
           product_quantity: 0,
           product_price: "0");
 
@@ -61,10 +61,11 @@ class _search_transactionState extends State<search_transaction> {
       a.forEach((key, value) {
         transactions.add(Transaction(
             product_name: Product(
-                product_id: key,
+                product_id: 0,
                 product_name: value['product_name']['product_name'],
                 product_date:
-                    DateTime.parse(value['product_name']['product_date']),
+                    DateTime.parse(value['product_name']['product_date'])
+                        .toString(),
                 product_price: value['product_name']['product_price'],
                 product_quantity: int.parse(
                     value['product_name']['product_quantity'].toString())),

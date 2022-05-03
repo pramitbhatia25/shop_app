@@ -35,8 +35,8 @@ class _outgoingState extends State<outgoing> {
     if (a == null) {
       Product temp = new Product(
           product_name: "No Product Added!",
-          product_id: "temp",
-          product_date: DateTime.now(),
+          product_id: 0,
+          product_date: DateTime.now().toString(),
           product_quantity: 0,
           product_price: "0");
 
@@ -56,10 +56,11 @@ class _outgoingState extends State<outgoing> {
           if (value['inorout'].toString().substring(0, 8) == "Outgoing") {
             outgoing_transactions.add(Transaction(
                 product_name: Product(
-                    product_id: key,
+                    product_id: 0,
                     product_name: value['product_name']['product_name'],
                     product_date:
-                        DateTime.parse(value['product_name']['product_date']),
+                        DateTime.parse(value['product_name']['product_date'])
+                            .toString(),
                     product_price: value['product_name']['product_price'],
                     product_quantity: int.parse(
                         value['product_name']['product_quantity'].toString())),
