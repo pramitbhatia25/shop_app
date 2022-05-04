@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shop_app/screens/product_description.dart';
 import 'package:shop_app/screens/search_transaction.dart';
 import '../models/transaction.dart';
+import '../widgets/getTDB.dart';
 import 'search_product.dart';
 
 class transactions extends StatefulWidget {
@@ -30,44 +31,93 @@ class _transactionsState extends State<transactions> {
   }
 
   Future<void> fetch_transactions() async {
+    // transactions = [];
+    // final response = await http.get(Uri.parse(transactions_url));
+    // var a = json.decode(response.body);
+    // if (a == null) {
+    //   Product temp = new Product(
+    //       product_name: "No Product Added!",
+    //       product_id: 0,
+    //       product_date: DateTime.now().toString(),
+    //       product_quantity: 0,
+    //       product_price: "0");
+
+    //   Transaction tempt =
+    //       new Transaction(product_name: temp, inorout: "None        ");
+    //   transactions.add(tempt);
+
+    //   setState(() {
+    //     height_of_container = 100;
+    //     transactions = transactions.reversed.toList();
+    //     isLoading = false;
+    //   });
+    // } else {
+    //   a = json.decode(response.body) as Map<String, dynamic>;
+
+    //   var i = 0;
+    //   a.forEach((key, value) {
+    //     transactions.add(Transaction(
+    //         product_name: Product(
+    //             product_id: 0,
+    //             product_name: value['product_name']['product_name'],
+    //             product_date:
+    //                 DateTime.parse(value['product_name']['product_date'])
+    //                     .toString(),
+    //             product_price: value['product_name']['product_price'],
+    //             product_quantity: int.parse(
+    //                 value['product_name']['product_quantity'].toString())),
+    //         inorout: value['inorout']));
+    //     i++;
+    //   });
+
+    //   setState(() {
+    //     height_of_container = i * 100;
+    //     transactions = transactions.reversed.toList();
+    //     isLoading = false;
+    //   });
+    // }
+
     transactions = [];
-    final response = await http.get(Uri.parse(transactions_url));
-    var a = json.decode(response.body);
-    if (a == null) {
+
+    final database = getTDB();
+
+    List<Map<String, dynamic>> transactionsInDB =
+        await fetchTransactionsFromDB(await database);
+
+    if (transactionsInDB.length == 0) {
       Product temp = new Product(
-          product_name: "No Product Added!",
           product_id: 0,
+          product_name: "No Product Added!",
           product_date: DateTime.now().toString(),
           product_quantity: 0,
           product_price: "0");
-
-      Transaction tempt =
+      Transaction tempT =
           new Transaction(product_name: temp, inorout: "None        ");
-      transactions.add(tempt);
-
+      transactions = [];
+      transactions.add(tempT);
+      print("No item db = {$transactions}");
       setState(() {
         height_of_container = 100;
         transactions = transactions.reversed.toList();
         isLoading = false;
       });
     } else {
-      a = json.decode(response.body) as Map<String, dynamic>;
+      var i = transactionsInDB.length;
+      transactions = [];
+      for (int j = 0; j < i; j++) {
+        print(transactionsInDB[j]);
+        Product newP = Product(
+            product_id: transactionsInDB[j]['product_id'],
+            product_name: transactionsInDB[j]['product_name'],
+            product_date: transactionsInDB[j]['product_date'],
+            product_price: transactionsInDB[j]['product_price'],
+            product_quantity: transactionsInDB[j]['product_quantity']);
+        Transaction newT = Transaction(
+            product_name: newP, inorout: transactionsInDB[j]['inorout']);
 
-      var i = 0;
-      a.forEach((key, value) {
-        transactions.add(Transaction(
-            product_name: Product(
-                product_id: 0,
-                product_name: value['product_name']['product_name'],
-                product_date:
-                    DateTime.parse(value['product_name']['product_date'])
-                        .toString(),
-                product_price: value['product_name']['product_price'],
-                product_quantity: int.parse(
-                    value['product_name']['product_quantity'].toString())),
-            inorout: value['inorout']));
-        i++;
-      });
+        transactions.add(newT);
+      }
+      print("Transactions from db = {$transactions}");
 
       setState(() {
         height_of_container = i * 100;

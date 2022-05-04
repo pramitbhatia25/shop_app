@@ -36,23 +36,41 @@ class _products_homeState extends State<products_home> {
 
   @override
   void initState() {
+    // droppedTable('products');
+    // droppedTable('transactions');
+    // createTable('P');
+    // createTable('T');
     fetch();
   }
 
-  Future<void> add() async {
-    final database = getPDB();
-    (await database).execute(
-      'CREATE TABLE products(product_id INT PRIMARY KEY, product_name TEXT, product_date STRING, product_quantity INTEGER, product_price TEXT);',
-    );
-    print("ADD");
+  Future<void> createTable(String pOrT) async {
+    if (pOrT == 'P') {
+      final database = getPDB();
+      (await database).execute(
+        'CREATE TABLE products(product_id INT PRIMARY KEY, product_name TEXT, product_date STRING, product_quantity INTEGER, product_price TEXT);',
+      );
+    } else {
+      final database = getTDB();
+      (await database).execute(
+        'CREATE TABLE transactions(product_id INT PRIMARY KEY, product_name TEXT, product_date STRING, product_quantity INTEGER, product_price TEXT, inorout TEXT);',
+      );
+    }
+    print("Created Table");
   }
 
-  Future<void> drop() async {
-    final database = getPDB();
-    (await database).execute(
-      'DROP TABLE IF EXISTS products;',
-    );
-    print("Drop");
+  Future<void> droppedTable(String tablename) async {
+    if (tablename == 'products') {
+      final database = getPDB();
+      (await database).execute(
+        'DROP TABLE IF EXISTS $tablename;',
+      );
+    } else {
+      final database = getTDB();
+      (await database).execute(
+        'DROP TABLE IF EXISTS $tablename;',
+      );
+    }
+    print("Dropped Table");
   }
 
   Future<void> fetch() async {
@@ -188,7 +206,7 @@ class _products_homeState extends State<products_home> {
     List<Map<String, dynamic>> transactionsInDB =
         await fetchTransactionsFromDB(await database);
 
-    if (transactionsInDB.length != 0) {
+    if (transactionsInDB.length == 0) {
       Product temp = new Product(
           product_id: 0,
           product_name: "No Product Added!",
@@ -210,16 +228,14 @@ class _products_homeState extends State<products_home> {
       transactions = [];
       for (int j = 0; j < i; j++) {
         Product newP = Product(
-            product_id: transactionsInDB[i]['product_name']['product_id'],
-            product_name: transactionsInDB[i]['product_name']['product_name'],
-            product_date: transactionsInDB[i]['product_name']['product_date'],
-            product_price: transactionsInDB[i]['product_name']['product_price'],
-            product_quantity: transactionsInDB[i]['product_name']
-                ['product_quantity']);
+            product_id: transactionsInDB[j]['product_id'],
+            product_name: transactionsInDB[j]['product_name'],
+            product_date: transactionsInDB[j]['product_date'],
+            product_price: transactionsInDB[j]['product_price'],
+            product_quantity: transactionsInDB[j]['product_quantity']);
 
         Transaction newT = Transaction(
-            product_name: newP,
-            inorout: transactionsInDB[i]['product_name']['inorout']);
+            product_name: newP, inorout: transactionsInDB[j]['inorout']);
 
         transactions.add(newT);
       }
