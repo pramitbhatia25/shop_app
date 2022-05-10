@@ -8,7 +8,7 @@ Future<sql.Database> getTDB() async {
     path.join(await sql.getDatabasesPath(), 'transactions.db'),
     onCreate: (db, version) {
       return db.execute(
-        'CREATE TABLE transactions(product_id INT PRIMARY KEY, product_name TEXT, product_date STRING, product_quantity INTEGER, product_price TEXT, inorout TEXT);',
+        'CREATE TABLE transactions(transaction_id INT PRIMARY KEY, product_id INT KEY, product_name TEXT, product_date STRING, product_quantity INTEGER, product_price TEXT, inorout TEXT);',
       );
     },
     version: 1,
@@ -34,6 +34,7 @@ Future<List<Map<String, dynamic>>> fetchTransactionsFromDB(
   final List<Map<String, dynamic>> maps = await db.query('transactions');
   List<Map<String, dynamic>> ans = List.generate(maps.length, (i) {
     return {
+      'transaction_id': maps[i]['transaction_id'],
       'product_id': maps[i]['product_id'],
       'product_name': maps[i]['product_name'],
       'product_date': maps[i]['product_date'],

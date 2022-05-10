@@ -8,6 +8,7 @@ import 'package:shop_app/screens/product_description.dart';
 import 'package:shop_app/widgets/getTDB.dart';
 import 'package:sqflite/sqflite.dart' as sql;
 import '../models/transaction.dart';
+import '../widgets/createDeleteDB.dart';
 import '../widgets/getPDB.dart';
 import 'search_product.dart';
 import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
@@ -27,6 +28,8 @@ class _products_homeState extends State<products_home> {
   bool isLoading = true;
   List<Product> products = [];
   List<Transaction> transactions = [];
+  late sql.Database Pdb;
+  late sql.Database Tdb;
 
   static const url =
       "https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/names.json";
@@ -41,36 +44,6 @@ class _products_homeState extends State<products_home> {
     // createTable('P');
     // createTable('T');
     fetch();
-  }
-
-  Future<void> createTable(String pOrT) async {
-    if (pOrT == 'P') {
-      final database = getPDB();
-      (await database).execute(
-        'CREATE TABLE products(product_id INT PRIMARY KEY, product_name TEXT, product_date STRING, product_quantity INTEGER, product_price TEXT);',
-      );
-    } else {
-      final database = getTDB();
-      (await database).execute(
-        'CREATE TABLE transactions(product_id INT PRIMARY KEY, product_name TEXT, product_date STRING, product_quantity INTEGER, product_price TEXT, inorout TEXT);',
-      );
-    }
-    print("Created Table");
-  }
-
-  Future<void> droppedTable(String tablename) async {
-    if (tablename == 'products') {
-      final database = getPDB();
-      (await database).execute(
-        'DROP TABLE IF EXISTS $tablename;',
-      );
-    } else {
-      final database = getTDB();
-      (await database).execute(
-        'DROP TABLE IF EXISTS $tablename;',
-      );
-    }
-    print("Dropped Table");
   }
 
   Future<void> fetch() async {
@@ -109,14 +82,14 @@ class _products_homeState extends State<products_home> {
     //     isLoading = false;
     //   });
     // }
+    Pdb = await getPDB();
+    Tdb = await getTDB();
 
-    final database = getPDB();
+    List<Map<String, dynamic>> productsInDB = await fetchProductsFromDB(Pdb);
 
-    print("Actual Products= {$products}");
-
-    List<Map<String, dynamic>> productsInDB =
-        await fetchProductsFromDB(await database);
     print(productsInDB.length);
+    products = [];
+
     if (productsInDB.length == 0) {
       Product temp = new Product(
           product_id: 0,
@@ -124,9 +97,11 @@ class _products_homeState extends State<products_home> {
           product_date: DateTime.now().toString(),
           product_quantity: 0,
           product_price: "0");
-      products = [];
+
       products.add(temp);
+
       print("No item db = {$products}");
+
       setState(() {
         height_of_container = 100;
         products = products.reversed.toList();
@@ -134,7 +109,6 @@ class _products_homeState extends State<products_home> {
       });
     } else {
       var i = productsInDB.length;
-      products = [];
       for (int j = 0; j < i; j++) {
         Product newP = Product(
             product_id: productsInDB[j]['product_id'],
@@ -144,6 +118,7 @@ class _products_homeState extends State<products_home> {
             product_quantity: productsInDB[j]['product_quantity']);
         products.add(newP);
       }
+
       print("Products from db = {$products}");
 
       setState(() {
@@ -201,10 +176,10 @@ class _products_homeState extends State<products_home> {
     // }
     // print("Actual transactions= {$transactions}");
 
-    final database = getTDB();
+    transactions = [];
 
     List<Map<String, dynamic>> transactionsInDB =
-        await fetchTransactionsFromDB(await database);
+        await fetchTransactionsFromDB(Tdb);
 
     if (transactionsInDB.length == 0) {
       Product temp = new Product(
@@ -213,19 +188,16 @@ class _products_homeState extends State<products_home> {
           product_date: DateTime.now().toString(),
           product_quantity: 0,
           product_price: "0");
-      Transaction tempT =
-          new Transaction(product_name: temp, inorout: "None        ");
-      transactions = [];
+      Transaction tempT = new Transaction(
+          transaction_id: 0, product_name: temp, inorout: "None        ");
       transactions.add(tempT);
       print("No item db = {$transactions}");
       setState(() {
-        height_of_container = 100;
         transactions = transactions.reversed.toList();
         isLoading = false;
       });
     } else {
       var i = transactionsInDB.length;
-      transactions = [];
       for (int j = 0; j < i; j++) {
         Product newP = Product(
             product_id: transactionsInDB[j]['product_id'],
@@ -235,14 +207,15 @@ class _products_homeState extends State<products_home> {
             product_quantity: transactionsInDB[j]['product_quantity']);
 
         Transaction newT = Transaction(
-            product_name: newP, inorout: transactionsInDB[j]['inorout']);
+            transaction_id: transactions.length,
+            product_name: newP,
+            inorout: transactionsInDB[j]['inorout']);
 
         transactions.add(newT);
       }
       print("Transactions from db = {$transactions}");
 
       setState(() {
-        height_of_container = i * 100;
         transactions = transactions.reversed.toList();
         isLoading = false;
       });
@@ -454,8 +427,9 @@ class _products_homeState extends State<products_home> {
                                                 if (value == null ||
                                                     value.isEmpty ||
                                                     int.tryParse(value) ==
-                                                        null) {
-                                                  return 'Please Enter Product Quantity';
+                                                        null ||
+                                                    int.tryParse(value)! < 1) {
+                                                  return 'Please Enter Valid Product Quantity';
                                                 }
                                                 return null;
                                               },
@@ -493,10 +467,21 @@ class _products_homeState extends State<products_home> {
                                                       isLoading = true;
                                                     });
 
+                                                    bool productsIsEmpty = products[
+                                                                    0]
+                                                                .product_name ==
+                                                            "No Product Added!"
+                                                        ? true
+                                                        : false;
+
                                                     Product postP = new Product(
                                                         product_name: one.text,
                                                         product_id:
-                                                            products.length,
+                                                            productsIsEmpty
+                                                                ? 1
+                                                                : products
+                                                                        .length +
+                                                                    1,
                                                         product_date:
                                                             _dateController
                                                                 .text,
@@ -506,10 +491,16 @@ class _products_homeState extends State<products_home> {
                                                         product_price:
                                                             four.text);
 
-                                                    final db = getPDB();
+                                                    List<Map<String, dynamic>>
+                                                        productsInDB =
+                                                        await fetchProductsFromDB(
+                                                            Pdb);
                                                     try {
-                                                      insertProduct(
-                                                          postP, await db);
+                                                      insertProduct(postP, Pdb);
+                                                      List<Map<String, dynamic>>
+                                                          productsInDB =
+                                                          await fetchProductsFromDB(
+                                                              Pdb);
                                                     } catch (e) {
                                                       print(
                                                           "prodErrorrrr -- > " +
@@ -537,16 +528,32 @@ class _products_homeState extends State<products_home> {
                                                         .save();
                                                     Navigator.pop(context);
 
-                                                    Transaction postT =
-                                                        new Transaction(
-                                                            product_name: postP,
-                                                            inorout:
-                                                                "Incoming ${postP.product_quantity}");
-                                                    final Tdb = getTDB();
+                                                    await fetch_transactions();
+                                                    print(transactions);
+                                                    bool transactionsIsEmpty =
+                                                        transactions[0]
+                                                                    .product_name
+                                                                    .product_name ==
+                                                                "No Product Added!"
+                                                            ? true
+                                                            : false;
+
+                                                    Transaction postT = new Transaction(
+                                                        transaction_id:
+                                                            transactionsIsEmpty
+                                                                ? 1
+                                                                : transactions
+                                                                        .length +
+                                                                    1,
+                                                        product_name: postP,
+                                                        inorout:
+                                                            "Incoming ${postP.product_quantity}");
+                                                    print("ABS");
+                                                    print(transactions.length);
                                                     try {
                                                       insertTransaction(
-                                                          postT, await Tdb);
-                                                      print("SUXCEESSSS");
+                                                          postT, Tdb);
+                                                      print("SUXCEESSdftraSS");
                                                     } catch (e) {
                                                       print(
                                                           "transacErrorrrr -- > " +
@@ -790,25 +797,6 @@ class _products_homeState extends State<products_home> {
                                                                     child:
                                                                         BasicDateField2(),
                                                                   ),
-                                                                  // TextFormField(
-                                                                  //   controller:
-                                                                  //       two,
-                                                                  //   decoration: InputDecoration(
-                                                                  //       labelStyle: TextStyle(
-                                                                  //         color: Colors.purple.withOpacity(0.5),
-                                                                  //         fontWeight: FontWeight.bold,
-                                                                  //       ),
-                                                                  //       labelText: pd.product_date.toString()),
-                                                                  //   style:
-                                                                  //       TextStyle(
-                                                                  //     color:
-                                                                  //         Colors.purple,
-                                                                  //     fontWeight:
-                                                                  //         FontWeight.bold,
-                                                                  //   ),
-                                                                  //   textAlign:
-                                                                  //       TextAlign.center,
-                                                                  // ),
                                                                   TextFormField(
                                                                     controller:
                                                                         three,
@@ -841,15 +829,16 @@ class _products_homeState extends State<products_home> {
                                                                             .center,
                                                                     validator:
                                                                         (value) {
-                                                                      if (value ==
-                                                                              null ||
+                                                                      if (value == null ||
                                                                           int.tryParse(value) ==
                                                                               pd
                                                                                   .product_quantity ||
                                                                           value
                                                                               .isEmpty ||
                                                                           int.tryParse(value) ==
-                                                                              null) {
+                                                                              null ||
+                                                                          int.tryParse(value)! <
+                                                                              1) {
                                                                         return 'Please Enter Valid Product Quantity';
                                                                       }
                                                                       return null;
@@ -921,26 +910,65 @@ class _products_homeState extends State<products_home> {
                                                                             inorout =
                                                                                 "Same 0";
                                                                           }
-                                                                          await http.patch(
-                                                                              Uri.parse(to_change_url),
-                                                                              body: json.encode({
-                                                                                'product_name': one.text,
-                                                                                'product_date': _dateController2.text,
-                                                                                'product_price': four.text,
-                                                                                'product_quantity': int.parse(three.text)
-                                                                              }));
-                                                                          await http.post(
-                                                                              Uri.parse("https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/transactions.json"),
-                                                                              body: json.encode({
-                                                                                'product_name': {
-                                                                                  'product_name': one.text,
-                                                                                  'product_id': pd.product_id,
-                                                                                  'product_date': _dateController2.text,
-                                                                                  'product_quantity': int.parse(three.text),
-                                                                                  'product_price': four.text,
-                                                                                },
-                                                                                'inorout': inorout,
-                                                                              }));
+                                                                          try {
+                                                                            updateProduct(
+                                                                                pd.product_id,
+                                                                                one.text,
+                                                                                _dateController2.text,
+                                                                                four.text,
+                                                                                int.parse(three.text),
+                                                                                Pdb);
+                                                                          } catch (e) {
+                                                                            print("Update Product Error." +
+                                                                                e.toString());
+                                                                          }
+                                                                          // await http.patch(
+                                                                          //     Uri.parse(to_change_url),
+                                                                          //     body: json.encode({
+                                                                          //       'product_name': one.text,
+                                                                          //       'product_date': _dateController2.text,
+                                                                          //       'product_price': four.text,
+                                                                          //       'product_quantity': int.parse(three.text)
+                                                                          //     }));
+                                                                          // await http.post(
+                                                                          //     Uri.parse("https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/transactions.json"),
+                                                                          //     body: json.encode({
+                                                                          //       'product_name': {
+                                                                          //         'product_name': one.text,
+                                                                          //         'product_id': pd.product_id,
+                                                                          //         'product_date': _dateController2.text,
+                                                                          //         'product_quantity': int.parse(three.text),
+                                                                          //         'product_price': four.text,
+                                                                          //       },
+                                                                          //   'inorout': inorout,
+                                                                          // }));
+                                                                          await fetch_transactions();
+                                                                          print(
+                                                                              transactions);
+                                                                          bool transactionsIsEmpty = transactions[0].product_name.product_name == "No Product Added!"
+                                                                              ? true
+                                                                              : false;
+
+                                                                          Transaction postupdateT = new Transaction(
+                                                                              transaction_id: transactionsIsEmpty ? 1 : transactions.length + 1,
+                                                                              product_name: Product(
+                                                                                product_name: one.text,
+                                                                                product_id: pd.product_id,
+                                                                                product_date: _dateController2.text,
+                                                                                product_quantity: int.parse(three.text),
+                                                                                product_price: four.text,
+                                                                              ),
+                                                                              inorout: inorout);
+                                                                          try {
+                                                                            insertTransaction(postupdateT,
+                                                                                Tdb);
+                                                                            print("SUXCEESSSS");
+                                                                          } catch (e) {
+                                                                            print("transacErrorrrr -- > " +
+                                                                                e.toString());
+                                                                          }
+                                                                          print(
+                                                                              fetchTransactionsFromDB(Tdb));
 
                                                                           setState(
                                                                               () {
@@ -977,35 +1005,74 @@ class _products_homeState extends State<products_home> {
                                     label: Text(""),
                                     icon: Icon(Icons.delete),
                                     onPressed: () async {
-                                      var id = pd.product_id;
+                                      // var id = pd.product_id;
 
-                                      var delete_url =
-                                          "https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/names/$id.json";
+                                      // var delete_url =
+                                      //     "https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/names/$id.json";
 
                                       setState(() {
                                         isLoading = true;
                                       });
+                                      // post a delete transaction
                                       var inorout =
                                           "Outgoing ${pd.product_quantity}";
-                                      await http.post(
-                                          Uri.parse(
-                                              "https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/transactions.json"),
-                                          body: json.encode({
-                                            'product_name': {
-                                              'product_name': pd.product_name,
-                                              'product_id': pd.product_id,
-                                              'product_date':
-                                                  pd.product_date.toString(),
-                                              'product_quantity':
-                                                  pd.product_quantity,
-                                              'product_price': pd.product_price,
-                                            },
-                                            'inorout': inorout,
-                                          }));
-                                      await http.delete(Uri.parse(delete_url));
-                                      await fetch();
+                                      await fetch_transactions();
+                                      bool transactionsIsEmpty = transactions[0]
+                                                  .product_name
+                                                  .product_name ==
+                                              "No Product Added!"
+                                          ? true
+                                          : false;
+                                      Transaction postdeleteT = new Transaction(
+                                          transaction_id: transactionsIsEmpty
+                                              ? 1
+                                              : transactions.length + 1,
+                                          product_name: Product(
+                                            product_name: pd.product_name,
+                                            product_id: pd.product_id,
+                                            product_date:
+                                                pd.product_date.toString(),
+                                            product_quantity:
+                                                pd.product_quantity,
+                                            product_price: pd.product_price,
+                                          ),
+                                          inorout: inorout);
+                                      try {
+                                        insertTransaction(postdeleteT, Tdb);
+                                        print("SUXCEESSSS insert delete t");
+                                      } catch (e) {
+                                        print("transacErrorrrr --delete > " +
+                                            e.toString());
+                                      }
 
+                                      try {
+                                        deleteProduct(pd.product_name, Pdb);
+                                        print("SUXCEESSSS DELETE");
+                                      } catch (e) {
+                                        print("deleteErrorrrr -- > " +
+                                            e.toString());
+                                      }
+
+                                      // await http.post(
+                                      //     Uri.parse(
+                                      //         "https://raghav-app-6a929-default-rtdb.asia-southeast1.firebasedatabase.app/transactions.json"),
+                                      //     body: json.encode({
+                                      //       'product_name': {
+                                      //         'product_name': pd.product_name,
+                                      //         'product_id': pd.product_id,
+                                      //         'product_date':
+                                      //             pd.product_date.toString(),
+                                      //         'product_quantity':
+                                      //             pd.product_quantity,
+                                      //         'product_price': pd.product_price,
+                                      //       },
+                                      //       'inorout': inorout,
+                                      //     }));
+                                      // await http.delete(Uri.parse(delete_url));
+                                      // await fetch();
+                                      await fetch();
                                       setState(() {
+                                        products = products;
                                         isLoading = false;
                                       });
                                     },

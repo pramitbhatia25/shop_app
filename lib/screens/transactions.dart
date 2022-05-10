@@ -91,8 +91,8 @@ class _transactionsState extends State<transactions> {
           product_date: DateTime.now().toString(),
           product_quantity: 0,
           product_price: "0");
-      Transaction tempT =
-          new Transaction(product_name: temp, inorout: "None        ");
+      Transaction tempT = new Transaction(
+          transaction_id: 0, product_name: temp, inorout: "None        ");
       transactions = [];
       transactions.add(tempT);
       print("No item db = {$transactions}");
@@ -105,15 +105,17 @@ class _transactionsState extends State<transactions> {
       var i = transactionsInDB.length;
       transactions = [];
       for (int j = 0; j < i; j++) {
-        print(transactionsInDB[j]);
+        print("t = " + transactionsInDB[j].toString());
         Product newP = Product(
             product_id: transactionsInDB[j]['product_id'],
-            product_name: transactionsInDB[j]['product_name'],
+            product_name: transactionsInDB[j]['product_name'].toString(),
             product_date: transactionsInDB[j]['product_date'],
             product_price: transactionsInDB[j]['product_price'],
             product_quantity: transactionsInDB[j]['product_quantity']);
         Transaction newT = Transaction(
-            product_name: newP, inorout: transactionsInDB[j]['inorout']);
+            transaction_id: j + 1,
+            product_name: newP,
+            inorout: transactionsInDB[j]['inorout']);
 
         transactions.add(newT);
       }

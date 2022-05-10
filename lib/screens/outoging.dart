@@ -5,6 +5,7 @@ import 'package:shop_app/models/product.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import '../models/transaction.dart';
+import '../widgets/getTDB.dart';
 import 'search_product.dart';
 
 class outgoing extends StatefulWidget {
@@ -29,10 +30,16 @@ class _outgoingState extends State<outgoing> {
 
   Future<void> fetch_outgoing_transactions() async {
     outgoing_transactions = [];
-    final response = await http.get(Uri.parse(transactions_url));
-    var a = json.decode(response.body);
+    // final response = await http.get(Uri.parse(transactions_url));
+    // var a = json.decode(response.body);
 
-    if (a == null) {
+    final database = getTDB();
+    outgoing_transactions = [];
+
+    List<Map<String, dynamic>> transactionsInDB =
+        await fetchTransactionsFromDB(await database);
+
+    if (transactionsInDB.length == 0) {
       Product temp = new Product(
           product_name: "No Product Added!",
           product_id: 0,
@@ -40,8 +47,8 @@ class _outgoingState extends State<outgoing> {
           product_quantity: 0,
           product_price: "0");
 
-      Transaction tempt =
-          new Transaction(product_name: temp, inorout: "None        ");
+      Transaction tempt = new Transaction(
+          transaction_id: 0, product_name: temp, inorout: "None        ");
       outgoing_transactions.add(tempt);
 
       setState(() {
@@ -51,25 +58,25 @@ class _outgoingState extends State<outgoing> {
       });
     } else {
       var i = 0;
-      a.forEach((key, value) {
-        if (value['inorout'].toString().substring(0, 4) != "Same") {
-          if (value['inorout'].toString().substring(0, 8) == "Outgoing") {
+      for (int j = 0; j < transactionsInDB.length; j++) {
+        var current_t = transactionsInDB[j];
+
+        if (current_t['inorout'].toString().substring(0, 4) != "Same") {
+          if (current_t['inorout'].toString().substring(0, 8) == "Outgoing") {
             outgoing_transactions.add(Transaction(
+                transaction_id: current_t['transaction_id'],
                 product_name: Product(
-                    product_id: 0,
-                    product_name: value['product_name']['product_name'],
-                    product_date:
-                        DateTime.parse(value['product_name']['product_date'])
-                            .toString(),
-                    product_price: value['product_name']['product_price'],
-                    product_quantity: int.parse(
-                        value['product_name']['product_quantity'].toString())),
-                inorout: value['inorout']));
-            i++;
+                    product_id: current_t['product_id'],
+                    product_name: current_t['product_name'],
+                    product_date: current_t['product_date'],
+                    product_price: current_t['product_price'],
+                    product_quantity: current_t['product_quantity']),
+                inorout: current_t['inorout']));
           }
           ;
+          i++;
         }
-      });
+      }
 
       setState(() {
         height_of_container = i * 100;

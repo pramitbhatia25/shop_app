@@ -27,6 +27,25 @@ Future<void> insertProduct(Product product, sql.Database database) async {
   );
 }
 
+Future<void> updateProduct(int id, String name, String date, String price,
+    int quantity, sql.Database database) async {
+  final db = database;
+  await db.execute(
+    'UPDATE products SET product_name = ?, product_date = ?, product_price = ?, product_quantity = ? where product_id = $id;',
+    [name, date, price, quantity],
+  );
+  print("Updated!");
+}
+
+Future<void> deleteProduct(String name, sql.Database database) async {
+  final db = database;
+  await db.execute(
+    'DELETE FROM products WHERE product_name = ?',
+    [name],
+  );
+  print("Deleted!");
+}
+
 Future<List<Map<String, dynamic>>> fetchProductsFromDB(
     sql.Database database) async {
   final db = database;
